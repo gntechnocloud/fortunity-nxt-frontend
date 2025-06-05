@@ -46,40 +46,49 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="slots" element={
-              <ProtectedRoute>
-                <SlotsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="matrix" element={
-              <ProtectedRoute>
-                <MatrixPage />
-              </ProtectedRoute>
-            } />
-            <Route path="referrals" element={
-              <ProtectedRoute>
-                <ReferralsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="transactions" element={
-              <ProtectedRoute>
-                <TransactionsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="pool" element={
-              <ProtectedRoute>
-                <PoolPage />
-              </ProtectedRoute>
-            } />
-            <Route path="profile" element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            } />
-          </Route>
+          <Route
+            path="/"
+            element={
+              <Layout>
+                <React.Fragment>
+                  <Routes>
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="slots" element={
+                      <ProtectedRoute>
+                        <SlotsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="matrix" element={
+                      <ProtectedRoute>
+                        <MatrixPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="referrals" element={
+                      <ProtectedRoute>
+                        <ReferralsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="transactions" element={
+                      <ProtectedRoute>
+                        <TransactionsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="pool" element={
+                      <ProtectedRoute>
+                        <PoolPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="profile" element={
+                      <ProtectedRoute>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    } />
+                  </Routes>
+                </React.Fragment>
+              </Layout>
+            }
+          />
         </Routes>
       </div>
     </Router>
