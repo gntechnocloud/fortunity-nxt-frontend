@@ -1,5 +1,5 @@
-// Contract configuration
-export const CONTRACT_CONFIG = {
+// Contract configuration For Mainnet
+/* export const CONTRACT_CONFIG = {
   address: process.env.VITE_CONTRACT_ADDRESS || '0x...',
   abi: [], // Will be imported from separate ABI file
   NETWORK: {
@@ -14,13 +14,36 @@ export const CONTRACT_CONFIG = {
     },
   },
 };
-
+ */
+export const CONTRACT_CONFIG = {
+  NETWORK: {
+    name: 'Core Testnet',
+    chainId: 1115, // Core testnet Chain ID
+    blockExplorer: 'https://scan.test.btcs.network',
+    rpcUrl: 'https://rpc.test.btcs.network',
+    nativeCurrency: {
+      name: 'Testnet Coin',
+      symbol: 'TST',
+      decimals: 18,
+      address: process.env.VITE_DIAMOND_ADDRESS || '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+      abi: require('../contracts/FortuneNXTDiamond.json').abi  
+    },
+   
+   // abi: [], // Will be imported from separate ABI file
+    // Example ABI import
+  
+  },
+  CONTRACT_ADDRESS: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+  CONTRACT_ABI: require('../contracts/FortuneNXTDiamond.json').abi, // Import ABI from JSON file
+  
+};
 export const FNXT_TOKEN_CONFIG = {
   address: process.env.VITE_FNXT_TOKEN_ADDRESS || '0x...',
-  abi: [], // ERC20 ABI
+  //abi: [], // ERC20 ABI
   decimals: 18,
   symbol: 'FNXT',
   name: 'Fortunity NXT Token',
+  abi: require('../contracts/FortunityNXTTOKEN.json').abi, // Import FNXT token ABI from JSON file
 };
 
 // API configuration

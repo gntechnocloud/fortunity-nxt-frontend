@@ -1,0 +1,43 @@
+// src/config/wagmiClient.ts
+
+import { createConfig, http } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+import { defineChain } from 'viem';
+
+// Core Blockchain custom chain definition
+export const coreChain = defineChain({
+  id: 1116,
+  name: 'Core Blockchain',
+  nativeCurrency: {
+    name: 'Core',
+    symbol: 'CORE',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc.coredao.org'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Core Explorer',
+      url: 'https://scan.coredao.org',
+    },
+  },
+});
+
+// wagmi v2 config
+export const wagmiConfig = createConfig({
+  chains: [coreChain],
+  connectors: [
+    injected({
+      targetChainId: coreChain.id,
+    }),
+  ],
+  transports: {
+    [coreChain.id]: http(),
+  },
+  ssr: true,
+});
+// This configuration sets up the wagmi client for the Core Blockchain
+// with the injected connector for MetaMask or other wallet providers.  

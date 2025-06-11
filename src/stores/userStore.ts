@@ -82,7 +82,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
     try {
       // 1. Call smart contract purchase function
-      const contract = new ethers.Contract(CONTRACT_CONFIG.address, CONTRACT_CONFIG.abi, signer);
+      const contract = new ethers.Contract(CONTRACT_CONFIG.CONTRACT_ADDRESS, CONTRACT_CONFIG.CONTRACT_ABI, signer);
       const tx = await contract.purchaseSlot(slotId);
       await tx.wait();
 

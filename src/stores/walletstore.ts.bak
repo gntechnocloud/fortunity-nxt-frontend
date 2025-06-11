@@ -1,10 +1,6 @@
 import { create } from 'zustand';
 import { ethers } from 'ethers';
-import {
-  CONTRACT_CONFIG,
-  FNXT_TOKEN_CONFIG,
-  ERROR_MESSAGES
-} from '@/constants';
+import { CONTRACT_CONFIG, FNXT_TOKEN_CONFIG, ERROR_MESSAGES/* , SUCCESS_MESSAGES */ } from '@/constants';
 import { storage, STORAGE_KEYS } from '@/utils';
 import type { WalletState } from '@/types';
 
@@ -38,84 +34,65 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const ethereum = window.ethereum;
-
-      if (!ethereum || !ethereum.request) {
-        throw new Error('MetaMask is not installed.');
+      if (!window.ethereum) {
+        throw new Error('MetaMask not installed');
       }
 
-      const provider = new ethers.BrowserProvider(ethereum);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send('eth_requestAccounts', []);
+      const signer = await provider.getSigner();
+      const address = accounts[0];
       const network = await provider.getNetwork();
 
+      // Check if on Core Blockchain
       if (Number(network.chainId) !== CONTRACT_CONFIG.NETWORK.chainId) {
         await get().switchToCore();
-        return; // wait for user to re-trigger connect
       }
 
-      const accounts: string[] = await provider.send('eth_requestAccounts', []);
-      const address = accounts[0];
-      const signer = await provider.getSigner();
-
-      const balance = await provider.getBalance(address);
+      const coreBalance = await provider.getBalance(address);
 
       set({
         isConnected: true,
         address,
         provider,
         signer,
-        coreBalance: ethers.formatEther(balance),
+        coreBalance: ethers.formatEther(coreBalance),
         chainId: Number(network.chainId),
-        isLoading: false,
-        error: null,
+        isLoading: false
       });
 
+      // Load FNXT balance
       await get().loadFNXTBalance();
 
+      // Save connection state
       storage.set(STORAGE_KEYS.walletConnection(), true);
-    } catch (error: any) {
-      console.error('Wallet connection failed:', error);
-      set({
-        error: error.message || ERROR_MESSAGES.NETWORK_ERROR,
-        isLoading: false,
-        isConnected: false,
+
+    } catch (error) {
+      set({ 
+        error: error instanceof Error ? error.message : ERROR_MESSAGES.NETWORK_ERROR, 
+        isLoading: false 
       });
     }
   },
 
   switchToCore: async () => {
     try {
-      const ethereum = window.ethereum;
-      if (!ethereum) throw new Error('Ethereum provider not found');
-
-      await ethereum.request({
+      await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [
-          {
-            chainId: `0x${CONTRACT_CONFIG.NETWORK.chainId.toString(16)}`,
-          },
-        ],
+        params: [{ chainId: `0x${CONTRACT_CONFIG.NETWORK.chainId.toString(16)}` }],
       });
-    } catch (error: any) {
-      if (error.code === 4902) {
-        // Chain not added to MetaMask
-        try {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: `0x${CONTRACT_CONFIG.NETWORK.chainId.toString(16)}`,
-                chainName: CONTRACT_CONFIG.NETWORK.name,
-                rpcUrls: [CONTRACT_CONFIG.NETWORK.rpcUrl],
-                blockExplorerUrls: [CONTRACT_CONFIG.NETWORK.blockExplorer],
-                nativeCurrency: CONTRACT_CONFIG.NETWORK.nativeCurrency,
-              },
-            ],
-          });
-        } catch (addError) {
-          console.error('Failed to add Core network:', addError);
-        }
-      } else {
-        console.error('Failed to switch network:', error);
+    } catch (switchError: any) {
+      if (switchError.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: `0x${CONTRACT_CONFIG.NETWORK.chainId.toString(16)}`,
+            chainName: CONTRACT_CONFIG.NETWORK.name,
+            rpcUrls: [CONTRACT_CONFIG.NETWORK.rpcUrl],
+            blockExplorerUrls: [CONTRACT_CONFIG.NETWORK.blockExplorer],
+            nativeCurrency: CONTRACT_CONFIG.NETWORK.nativeCurrency
+          }]
+        });
       }
     }
   },
@@ -129,15 +106,14 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       }
 
       const fnxtContract = new ethers.Contract(
-        FNXT_TOKEN_CONFIG.address,
-        FNXT_TOKEN_CONFIG.abi,
+        FNXT_TOKEN_CONFIG.address, 
+        FNXT_TOKEN_CONFIG.abi, 
         signer
       );
-
       const balance = await fnxtContract.balanceOf(address);
       set({ fnxtBalance: ethers.formatEther(balance) });
     } catch (error) {
-      console.error('Error loading FNXT balance:', error);
+      console.error('Failed to load FNXT balance:', error);
       set({ fnxtBalance: '0' });
     }
   },
@@ -150,7 +126,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       const balance = await provider.getBalance(address);
       set({ coreBalance: ethers.formatEther(balance) });
     } catch (error) {
-      console.error('Error loading CORE balance:', error);
+      console.error('Failed to load CORE balance:', error);
     }
   },
 
@@ -163,12 +139,10 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       coreBalance: '0',
       fnxtBalance: '0',
       chainId: null,
-      error: null,
+      error: null
     });
     storage.remove(STORAGE_KEYS.walletConnection());
   },
 
-  clearError: () => {
-    set({ error: null });
-  },
+  clearError: () => set({ error: null })
 }));
