@@ -126,3 +126,9 @@ export const EarningsChart: React.FC<EarningsChartProps> = ({ showBalances }) =>
     </Card>
   );
 };
+export default EarningsChart;
+// This component displays a chart of earnings over time, allowing users to switch between a line chart
+// and a bar chart for better visualization. It uses Recharts for rendering the charts and includes
+// a custom tooltip to show detailed earnings information. The earnings data is currently mocked,
+// but should be replaced with real data fetched from the API. The `showBalances` prop controls whether
+// the actual earnings values are displayed or masked for privacy.

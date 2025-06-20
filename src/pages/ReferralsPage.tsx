@@ -361,3 +361,4 @@ export const ReferralsPage: React.FC = () => {
     </div>
   );
 };
+export default ReferralsPage;

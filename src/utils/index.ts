@@ -139,6 +139,28 @@ export const STORAGE_KEYS = {
 };
 // ...other exports
 
+// Navigation items for sidebar/menu
+/* export const NAVIGATION_ITEMS = [
+  { name: 'Dashboard', href: '/dashboard', icon: 'Home' },
+  { name: 'Slots', href: '/slots', icon: 'Grid3X3' },
+  { name: 'Matrix', href: '/matrix', icon: 'Network' },
+  { name: 'Referrals', href: '/referrals', icon: 'Users' },
+  { name: 'Transactions', href: '/transactions', icon: 'Receipt' },
+  { name: 'Pool Income', href: '/pool', icon: 'Coins' },
+  { name: 'Profile', href: '/profile', icon: 'User' },
+]; */
+
+export const NAVIGATION_ITEMS = [
+  { name: 'Dashboard', path: '/dashboard' },
+  { name: 'Slots', path: '/slots' },
+  { name: 'Matrix', path: '/matrix' },
+  { name: 'Referrals', path: '/referrals' },
+  { name: 'Transactions', path: '/transactions' },
+  { name: 'Pool Income', path: '/pool' },
+  { name: 'Profile', path: '/profile' },
+];
+
+// Constants for the application
 // API helpers
 export const api = {
   get: async <T>(url: string, options?: RequestInit): Promise<T> => {

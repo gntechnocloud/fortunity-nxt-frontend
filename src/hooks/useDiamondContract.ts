@@ -1,28 +1,30 @@
-import { useMemo } from 'react'
-import { useAccount, useWalletClient } from 'wagmi'
-import { Contract } from 'ethers'
-import DiamondABI from '../contracts/FortuneNXTDiamond.json'
-
-// Replace this with your actual deployed Diamond contract address
-const DIAMOND_ADDRESS = '0xYourDiamondContractAddressHere'
-
-declare global {
-  interface Window {
-    ethereum?: any
-  }
-}
+import { useEffect, useState } from "react";
+import { ethers, Contract } from "ethers";
+import { getDiamondContract } from "../utils/contract";
+import { useWeb3ModalProvider, useWeb3ModalAccount } from "@web3modal/ethers/react";
 
 export function useDiamondContract() {
-  const { isConnected } = useAccount()
-  const { data: walletClient } = useWalletClient()
+  const { walletProvider } = useWeb3ModalProvider();
+  const { isConnected, chainId } = useWeb3ModalAccount();
+  const [contract, setContract] = useState<Contract | null>(null);
 
-  return useMemo(() => {
-    if (!isConnected || !walletClient || !window.ethereum) return null
+  useEffect(() => {
+    async function initContract() {
+      if (!walletProvider || !isConnected || !chainId) return;
 
-    const { ethers } = require('ethers')
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const signer = provider.getSigner()
+      const browserProvider = new ethers.BrowserProvider(walletProvider);
+      const signer = await browserProvider.getSigner();
+      try {
+        const instance = getDiamondContract(chainId, signer);
+        setContract(instance);
+      } catch (err) {
+        console.error("❌ Error loading Diamond contract:", err);
+        setContract(null);
+      }
+    }
 
-    return new Contract(DIAMOND_ADDRESS, DiamondABI.abi, signer)
-  }, [isConnected, walletClient])
+    initContract();
+  }, [walletProvider, isConnected, chainId]);
+
+  return contract;
 }

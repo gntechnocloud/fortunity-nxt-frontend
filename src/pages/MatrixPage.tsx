@@ -219,3 +219,4 @@ export const MatrixPage: React.FC = () => {
     </div>
   );
 };
+export default MatrixPage;

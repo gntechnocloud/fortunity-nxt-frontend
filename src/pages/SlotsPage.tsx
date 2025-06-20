@@ -375,3 +375,4 @@ export const SlotsPage: React.FC = () => {
     </div>
   );
 };
+export default SlotsPage;

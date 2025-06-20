@@ -125,3 +125,4 @@ export const ReferralStats: React.FC = () => {
     </Card>
   );
 };
+export default ReferralStats;

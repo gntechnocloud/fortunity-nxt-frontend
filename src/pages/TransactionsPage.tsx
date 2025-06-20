@@ -373,3 +373,4 @@ export const TransactionsPage: React.FC = () => {
     </div>
   );
 };
+export default TransactionsPage;

@@ -279,3 +279,4 @@ export const PoolPage: React.FC = () => {
     </div>
   );
 };
+export default PoolPage;

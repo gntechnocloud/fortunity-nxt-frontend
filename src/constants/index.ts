@@ -1,6 +1,12 @@
+//.utils/index.ts
+// Constants and configuration for the Fortune NXT application
+// This file contains the contract configuration, API settings, slot prices, and other constants used throughout
+// the application. It is used to ensure consistent settings across the application and to provide easy access
+// to important values such as contract addresses, API endpoints, and slot prices.
+
 // Contract configuration For Mainnet
 /* export const CONTRACT_CONFIG = {
-  address: process.env.VITE_CONTRACT_ADDRESS || '0x...',
+  address: import.env.VITE_CONTRACT_ADDRESS || '0x...',
   abi: [], // Will be imported from separate ABI file
   NETWORK: {
     chainId: 1116, // Core Blockchain
@@ -15,6 +21,11 @@
   },
 };
  */
+
+import FortuneNXTDiamond from '../contracts/FortuneNXTDiamond.json';
+// Configuration for Fortune NXT Diamond contract
+// This file contains the contract address, ABI, and network configuration for the Fortune NXT Diamond
+// It is used to interact with the smart contract on the Core Testnet.
 export const CONTRACT_CONFIG = {
   NETWORK: {
     name: 'Core Testnet',
@@ -25,30 +36,30 @@ export const CONTRACT_CONFIG = {
       name: 'Testnet Coin',
       symbol: 'TST',
       decimals: 18,
-      address: process.env.VITE_DIAMOND_ADDRESS || '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-      abi: require('../contracts/FortuneNXTDiamond.json').abi  
+      address: import.meta.env.VITE_DIAMOND_ADDRESS_31337 || '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+      abi: FortuneNXTDiamond.abi  
     },
    
    // abi: [], // Will be imported from separate ABI file
     // Example ABI import
   
   },
-  CONTRACT_ADDRESS: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-  CONTRACT_ABI: require('../contracts/FortuneNXTDiamond.json').abi, // Import ABI from JSON file
+  CONTRACT_ADDRESS: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e',
+  CONTRACT_ABI: FortuneNXTDiamond.abi, // Import ABI from JSON file
   
 };
 export const FNXT_TOKEN_CONFIG = {
-  address: process.env.VITE_FNXT_TOKEN_ADDRESS || '0x...',
+  address: import.meta.env.VITE_FNXT_TOKEN_ADDRESS || '0x...',
   //abi: [], // ERC20 ABI
   decimals: 18,
   symbol: 'FNXT',
   name: 'Fortunity NXT Token',
-  abi: require('../contracts/FortunityNXTTOKEN.json').abi, // Import FNXT token ABI from JSON file
+  abi: FortuneNXTDiamond.abi, // Import FNXT token ABI from JSON file
 };
 
 // API configuration
 export const API_CONFIG = {
-  baseUrl: process.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
   timeout: 10000,
   retries: 3,
 };
@@ -78,14 +89,58 @@ export const MATRIX_CONFIG = {
 };
 
 // Navigation items
+import {
+  Home,
+  Grid3X3,
+  Network,
+  Users,
+  Receipt,
+  Coins,
+  User,
+  Settings
+} from 'lucide-react';
+
 export const NAVIGATION_ITEMS = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'Home' },
-  { name: 'Slots', href: '/slots', icon: 'Grid3X3' },
-  { name: 'Matrix', href: '/matrix', icon: 'Network' },
-  { name: 'Referrals', href: '/referrals', icon: 'Users' },
-  { name: 'Transactions', href: '/transactions', icon: 'Receipt' },
-  { name: 'Pool Income', href: '/pool', icon: 'Coins' },
-  { name: 'Profile', href: '/profile', icon: 'User' },
+  {
+    name: 'Dashboard',
+    path: '/dashboard',
+    icon: Home
+  },
+  {
+    name: 'Slots',
+    path: '/slots',
+    icon: Grid3X3
+  },
+  {
+    name: 'Matrix',
+    path: '/matrix',
+    icon: Network
+  },
+  {
+    name: 'Referrals',
+    path: '/referrals',
+    icon: Users
+  },
+  {
+    name: 'Transactions',
+    path: '/transactions',
+    icon: Receipt
+  },
+  {
+    name: 'Pool Income',
+    path: '/pool',
+    icon: Coins
+  },
+  {
+    name: 'Profile',
+    path: '/profile',
+    icon: User
+  },
+  {
+    name: 'Settings',
+    path: '/settings',
+    icon: Settings
+  }
 ];
 
 // Theme colors

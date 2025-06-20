@@ -115,3 +115,7 @@ export const RecentActivity: React.FC = () => {
     </Card>
   );
 };
+export default RecentActivity;
+//     },
+//     {
+//       id: 'grid',

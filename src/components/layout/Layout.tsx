@@ -1,32 +1,38 @@
-import React, { useState, ReactNode } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
-// Update the import path below to where your ThemeProvider is actually defined
-// Update the import path below to where your ThemeProvider is actually defined
-// import { ThemeProvider } from '../theme/ThemeProvider';
-// import { ThemeProvider } from '../../theme/ThemeProvider'; // <-- Adjust this path as needed
-// Please update the path below to the actual location of your ThemeProvider file:
-import { ThemeProvider } from '../theme/ThemeProvider'; // Example: adjust this path as needed
+import React from 'react';
+import { useLocation, Outlet } from 'react-router-dom';
+import Sidebar from '../layout/Sidebar';
+import Header from '../layout/Header';
 
-interface LayoutProps {
-  children: ReactNode;
-}
+const Layout: React.FC = () => {
+  const location = useLocation();
+  const pathname = location?.pathname ?? '/dashboard';
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  let pageTitle = 'Dashboard';
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  try {
+    const segments = pathname.split('/').filter(Boolean);
+    const lastSegment = segments.at(-1);
+
+    if (typeof lastSegment === 'string' && lastSegment.length > 0) {
+      pageTitle = lastSegment
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+  } catch (error) {
+    console.error('💥 Error generating page title:', error);
+    pageTitle = 'Dashboard';
+  }
 
   return (
-    <ThemeProvider>
-      <div className="flex h-screen bg-neutral-light dark:bg-neutral-dark text-neutral-dark dark:text-neutral-light">
-        <Sidebar isOpen={sidebarOpen} />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <Header toggleSidebar={toggleSidebar} />
-          <main className="flex-1 overflow-y-auto pt-16 p-4 md:p-8">{children}</main>
-        </div>
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Header title={pageTitle} />
+        <main className="flex-1 p-6 overflow-y-auto">
+          <Outlet />
+        </main>
       </div>
-    </ThemeProvider>
+    </div>
   );
 };
 
