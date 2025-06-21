@@ -8,12 +8,15 @@ import {
   Grid3X3
 } from 'lucide-react';
 
+import { User, Slot } from '@/types';
 import { StatCard } from '@/components/ui';
 import { formatCurrency } from '@/utils';
 import { useUserStore } from '@/stores/userStore';
 
 interface DashboardOverviewProps {
   showBalances: boolean;
+  profile: User | null;
+  slots: Slot[];
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ showBalances }) => {

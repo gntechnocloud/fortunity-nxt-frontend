@@ -2,10 +2,10 @@ import { create } from 'zustand';
 import { ethers } from 'ethers';
 import {
   CONTRACT_CONFIG,
-  FNXT_TOKEN_CONFIG,
   ERROR_MESSAGES
 } from '@/constants';
 import { storage, STORAGE_KEYS } from '@/utils';
+import { useUserStore } from './userStore';
 import type { WalletState } from '@/types';
 
 declare global {
@@ -39,7 +39,6 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
 
     try {
       const ethereum = window.ethereum;
-
       if (!ethereum || !ethereum.request) {
         throw new Error('MetaMask is not installed.');
       }
@@ -49,13 +48,12 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
 
       if (Number(network.chainId) !== CONTRACT_CONFIG.NETWORK.chainId) {
         await get().switchToCore();
-        return; // wait for user to re-trigger connect
+        return;
       }
 
       const accounts: string[] = await provider.send('eth_requestAccounts', []);
       const address = accounts[0];
       const signer = await provider.getSigner();
-
       const balance = await provider.getBalance(address);
 
       set({
@@ -70,7 +68,6 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       });
 
       await get().loadFNXTBalance();
-
       storage.set(STORAGE_KEYS.walletConnection(), true);
     } catch (error: any) {
       console.error('Wallet connection failed:', error);
@@ -97,7 +94,6 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       });
     } catch (error: any) {
       if (error.code === 4902) {
-        // Chain not added to MetaMask
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
@@ -122,20 +118,10 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
 
   loadFNXTBalance: async () => {
     try {
-      const { signer, address } = get();
-      if (!signer || !address) {
-        set({ fnxtBalance: '0' });
-        return;
-      }
-
-      const fnxtContract = new ethers.Contract(
-        FNXT_TOKEN_CONFIG.address,
-        FNXT_TOKEN_CONFIG.abi,
-        signer
-      );
-
-      const balance = await fnxtContract.balanceOf(address);
-      set({ fnxtBalance: ethers.formatEther(balance) });
+      const { userProfile } = useUserStore.getState();
+      const invested = userProfile?.totalInvestmentUsd ?? 0;
+      const mockBalance = (invested / 0.1).toFixed(2);
+      set({ fnxtBalance: mockBalance });
     } catch (error) {
       console.error('Error loading FNXT balance:', error);
       set({ fnxtBalance: '0' });
@@ -172,3 +158,4 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     set({ error: null });
   },
 }));
+// Automatically load balances on mount

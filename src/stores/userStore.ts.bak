@@ -3,14 +3,6 @@ import { create } from 'zustand';
 import { ethers } from 'ethers';
 import { API_CONFIG, CONTRACT_CONFIG, SLOT_CONFIG } from '@/constants';
 import { api, getErrorMessage } from '@/utils';
-/* ------------------------------------------------------------------
-   A. import ABI + provider (unchanged)
--------------------------------------------------------------------*/
-import diamondAbi from "@/abi/FortuneNXTDiamond.json";
-
-
-const provider = new ethers.BrowserProvider(window.ethereum);
-
 import type {
   UserState,
   ApiResponse,
@@ -73,64 +65,37 @@ export const useUserStore = create<UserStore>((set, get) => ({
     return (usd / rate).toFixed(2);
   },
 
+  loadUserData: async (address: string, token?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
 
+      const response = await api.get<ApiResponse<any>>(`${API_CONFIG.baseUrl}/user/${address}`, { headers });
 
-  /* ------------------------------------------------------------------
-   B. loadUser()  – use getUserProfile & getAllSlotPricesInCore
--------------------------------------------------------------------*/
-loadUserData: async (addr: string) => {
-  if (!provider) return;
-  set({ isLoading: true, error: null });
-  try {
-    const c = new ethers.Contract(
-      CONTRACT_CONFIG.CONTRACT_ADDRESS,
-      diamondAbi,
-      provider
-    );
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch user data');
+      }
 
-    // 1️⃣ profile struct
-    const p = await c.getUserProfile(addr);
-    // 2️⃣ slot prices
-    const prices = await c.getAllSlotPricesInCore();
+      const { data } = response;
 
-    const activeIds: number[] = p.activeSlots.map((n: bigint) => Number(n));
-
-    // build slot list
-    const merged = get().allSlots.map((slot, idx) => ({
-      ...slot,
-      priceCore: Number(ethers.formatEther(prices[idx])),
-      purchased: activeIds.includes(slot.id),
-      isActive: activeIds.includes(slot.id),
-    }));
-
-    set({
-      userProfile: {
-        wallet: addr,
-        referrer: p.referrer,
-        joined: new Date(Number(p.joinedAt) * 1e3).toISOString(),
-        isActive: p.isActive,
-      } as any,
-      slots: merged.filter((s) => s.purchased),
-      earnings: {
-        matrix: ethers.formatEther(p.matrixEarnings),
-        level:  ethers.formatEther(p.levelEarnings),
-        pool:   ethers.formatEther(p.poolEarnings),
-        total:  ethers.formatEther(p.totalEarnings),
-      },
-      referrals: {
-        direct: Number(p.directReferrals),
-        indirect: 0,
-        total: Number(p.directReferrals),
-        activeReferrals: 0,
-      },
-      isLoading: false,
-    });
-  } catch (err: any) {
-    console.error(err);
-    set({ error: err.message, isLoading: false });
-  }
-},
-
+      set({
+        userProfile: data.userProfile,
+        slots: data.slots || [],
+        earnings: data.earnings || get().earnings,
+        referrals: data.referrals || get().referrals,
+        transactions: data.transactions || [],
+        matrix: data.matrix || [],
+        poolIncome: data.poolIncome || [],
+        isLoading: false
+      });
+    } catch (error) {
+      set({
+        error: getErrorMessage(error),
+        isLoading: false
+      });
+    }
+  },
 
   purchaseSlot: async (slotId: number, signer: ethers.Signer, token?: string) => {
     set({ isLoading: true, error: null });
@@ -217,36 +182,22 @@ loadUserData: async (addr: string) => {
     }
   },
 
+  loadMatrix: async (address: string, token?: string) => {
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await api.get<ApiResponse<MatrixNode[]>>(
+        `${API_CONFIG.baseUrl}/user/${address}/matrix`,
+        { headers }
+      );
+      if (response.success) {
+        set({ matrixNodes: response.data.filter(n => n.level === 1 || n.level === 2) });
+      }
+    } catch (error) {
+      console.error('Failed to load matrix:', error);
+    }
+  },
 
-  /* ------------------------------------------------------------------
-   C. loadMatrix()  – single slot example using getMatrixNode
--------------------------------------------------------------------*/
-loadMatrix: async (addr: string, slotId = 1) => {
-  if (!provider) return;
-  try {
-    const c = new ethers.Contract(
-      CONTRACT_CONFIG.CONTRACT_ADDRESS,
-      diamondAbi,
-      provider
-    );
-    const node = await c.getMatrixNode(addr, slotId);
-
-    set({
-      matrixNodes: [
-        {
-          wallet: addr,
-          slotId,
-          level1: node.level1,
-          level2: node.level2,
-          earnings: ethers.formatEther(node.earnings),
-          isComplete: node.completed,
-        } as unknown as MatrixNode,
-      ],
-    });
-  } catch (e) {
-    console.error(e);
-  }
-},
   loadPoolIncome: async (address: string, token?: string) => {
     try {
       const headers: Record<string, string> = {};

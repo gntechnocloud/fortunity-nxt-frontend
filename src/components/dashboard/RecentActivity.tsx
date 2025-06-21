@@ -1,67 +1,33 @@
 import React from 'react';
-import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Grid3X3, 
-  Users,
-  MoreHorizontal
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
+  Repeat,
+  MoreHorizontal,
+  HelpCircle
 } from 'lucide-react';
 import { Card, Button } from '@/components/ui';
 import { formatCurrency, formatRelativeTime } from '@/utils';
-/* import { useUserStore } from '@/stores/userStore'; */
+import { Transaction } from '@/types';
 
-// Mock data - replace with real data
-const recentActivities = [
-  {
-    id: '1',
-    type: 'earnings',
-    description: 'Matrix income received',
-    amount: '0.025',
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    icon: ArrowUpRight,
-    color: 'text-success-600'
-  },
-  {
-    id: '2',
-    type: 'purchase',
-    description: 'Slot 4 purchased',
-    amount: '0.08',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    icon: Grid3X3,
-    color: 'text-primary-600'
-  },
-  {
-    id: '3',
-    type: 'referral',
-    description: 'New referral joined',
-    amount: null,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-    icon: Users,
-    color: 'text-warning-600'
-  },
-  {
-    id: '4',
-    type: 'earnings',
-    description: 'Level income received',
-    amount: '0.015',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
-    icon: ArrowUpRight,
-    color: 'text-success-600'
-  },
-  {
-    id: '5',
-    type: 'withdrawal',
-    description: 'Withdrawal processed',
-    amount: '0.5',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    icon: ArrowDownLeft,
-    color: 'text-danger-600'
+interface RecentActivityProps {
+  transactions: Transaction[];
+}
+
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case 'deposit':
+      return { icon: ArrowUpRight, color: 'text-success-600' };
+    case 'withdrawal':
+      return { icon: ArrowDownLeft, color: 'text-danger-600' };
+    case 'rebirth':
+      return { icon: Repeat, color: 'text-warning-600' };
+    default:
+      return { icon: HelpCircle, color: 'text-gray-500' };
   }
-];
+};
 
-export const RecentActivity: React.FC = () => {
- /*  const { transactions } = useUserStore(); */
-
+export const RecentActivity: React.FC<RecentActivityProps> = ({ transactions }) => {
   return (
     <Card>
       <div className="flex items-center justify-between mb-4">
@@ -74,31 +40,37 @@ export const RecentActivity: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        {recentActivities.map((activity) => {
-          const Icon = activity.icon;
-
+        {transactions.map((tx) => {
+          const { icon: Icon, color } = getActivityIcon(tx.type);
           return (
-            <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <div className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-700 ${activity.color}`}>
+            <div
+              key={tx.id}
+              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <div className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-700 ${color}`}>
                 <Icon className="w-4 h-4" />
               </div>
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                  {activity.description}
+                  {tx.description}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatRelativeTime(activity.timestamp)}
+                  {formatRelativeTime(new Date(tx.createdAt))} {/* ✅ Fixed here */}
                 </p>
               </div>
 
-              {activity.amount && (
+              {tx.amount && (
                 <div className="text-right">
-                  <p className={`text-sm font-medium ${
-                    activity.type === 'withdrawal' ? 'text-danger-600' : 'text-success-600'
-                  }`}>
-                    {activity.type === 'withdrawal' ? '-' : '+'}
-                    {formatCurrency(activity.amount)}
+                  <p
+                    className={`text-sm font-medium ${
+                      tx.type === 'withdrawal'
+                        ? 'text-danger-600'
+                        : 'text-success-600'
+                    }`}
+                  >
+                    {tx.type === 'withdrawal' ? '-' : '+'}
+                    {formatCurrency(tx.amount)}
                   </p>
                 </div>
               )}
@@ -115,7 +87,5 @@ export const RecentActivity: React.FC = () => {
     </Card>
   );
 };
+
 export default RecentActivity;
-//     },
-//     {
-//       id: 'grid',

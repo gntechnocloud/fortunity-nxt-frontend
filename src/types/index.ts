@@ -16,10 +16,12 @@ export interface Slot {
   earnings: string;
   price: string;
   isActive: boolean;
+  priceCore: number; // Price in CORE
   rebirth?: {
     count: number;
     lastRebirthAt?: string;
   };
+  
 }
 
 export interface Earnings {
@@ -46,6 +48,7 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'failed';
   hash?: string;
   description: string;
+  createdAt: string | Date; // ✅ Add this line
 }
 
 export interface MatrixPosition {
@@ -101,6 +104,15 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+export interface MatrixNode {
+  wallet: string;
+  level: 1 | 2;
+  slotId: number;
+}
+export interface ActivityLog {
+  date: string;
+  message: string;
 }
 
 export type Theme = 'light' | 'dark';

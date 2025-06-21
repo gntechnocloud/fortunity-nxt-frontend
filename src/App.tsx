@@ -1,6 +1,14 @@
+//src/App.tsx
+// This file is part of the React application that sets up routing and handles wallet connection.
+// It uses React Router for navigation and includes a protected route component to ensure certain pages are only
+// accessible when the user is connected to a wallet.
+// The useEffect hook initializes the theme and attempts to auto-connect the wallet based on local storage
+// values. The Layout component wraps the main content and provides a consistent layout across all pages.
+// Each page is wrapped in a ProtectedRoute to enforce wallet connection requirements for certain functionalities
+
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
+import { Layout } from '@/components/layout';
 import { useAppStore } from '@/stores/appStore';
 import { useWalletStore } from '@/stores/walletStore';
 import { storage, STORAGE_KEYS } from '@/utils';
@@ -32,7 +40,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { isConnected } = useWalletStore();
 
   if (!isConnected) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/dashboard"/>;
   }
 
   return <>{children}</>;

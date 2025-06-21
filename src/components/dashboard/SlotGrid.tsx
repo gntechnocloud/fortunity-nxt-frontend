@@ -1,19 +1,30 @@
+// src/components/dashboard/SlotGrid.tsx
 import React, { useState } from 'react';
 import { Lock, Unlock, TrendingUp, RefreshCw } from 'lucide-react';
 import { Card, Button, Badge, Modal } from '@/components/ui';
-import { useUserStore } from '@/stores/userStore';
-import { useWalletStore } from '@/stores/walletStore';
-import { formatCurrency, /* getSlotPrice */ } from '@/utils';
+import { formatCurrency } from '@/utils';
 import { SLOT_CONFIG } from '@/constants';
+import { Slot } from '@/types';
 
-export const SlotGrid: React.FC = () => {
-  const { slots, purchaseSlot, isLoading } = useUserStore();
-  const { signer } = useWalletStore();
+interface SlotGridProps {
+  slots: Slot[]; // 12 slots — including purchased and unpurchased
+  onPurchase: (slotId: number) => Promise<void>;
+  isLoading: boolean;
+}
+
+export const SlotGrid: React.FC<SlotGridProps> = ({ slots, onPurchase, isLoading }) => {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   const handleSlotClick = (slotId: number) => {
-    const slot = slots.find(s => s.id === slotId);
+    const slot = slots.find(s => s.id === slotId) || {
+      id: slotId,
+      purchased: false,
+      earnings: '0',
+      price: SLOT_CONFIG.prices[index],
+      isActive: false,
+      rebirth: { count: 0 } // ✅ Add this line
+    };;
     if (slot && !slot.purchased) {
       setSelectedSlot(slotId);
       setShowPurchaseModal(true);
@@ -21,9 +32,9 @@ export const SlotGrid: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-    if (selectedSlot && signer) {
+    if (selectedSlot) {
       try {
-        await purchaseSlot(selectedSlot, signer);
+        await onPurchase(selectedSlot);
         setShowPurchaseModal(false);
         setSelectedSlot(null);
       } catch (error) {
@@ -99,7 +110,6 @@ export const SlotGrid: React.FC = () => {
                   }
                 `}
               >
-                {/* Slot Number */}
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
                     #{slotId}
@@ -109,7 +119,6 @@ export const SlotGrid: React.FC = () => {
                   </Badge>
                 </div>
 
-                {/* Price */}
                 <div className="mb-2">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Price</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -117,7 +126,6 @@ export const SlotGrid: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Earnings */}
                 <div className="mb-3">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Earnings</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -125,7 +133,6 @@ export const SlotGrid: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Status */}
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-medium capitalize ${
                     status === 'active' ? 'text-success-600' :
@@ -140,7 +147,6 @@ export const SlotGrid: React.FC = () => {
                   )}
                 </div>
 
-                {/* Rebirth indicator */}
                 {slot.rebirth && slot.rebirth.count > 0 && (
                   <div className="absolute -top-2 -right-2 bg-primary-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
                     {slot.rebirth.count}
@@ -201,18 +207,10 @@ export const SlotGrid: React.FC = () => {
             </div>
 
             <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowPurchaseModal(false)}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={() => setShowPurchaseModal(false)} className="flex-1">
                 Cancel
               </Button>
-              <Button
-                onClick={handlePurchase}
-                isLoading={isLoading}
-                className="flex-1"
-              >
+              <Button onClick={handlePurchase} isLoading={isLoading} className="flex-1">
                 Purchase Slot
               </Button>
             </div>

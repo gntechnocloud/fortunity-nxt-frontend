@@ -5,9 +5,15 @@ import { useUserStore } from '@/stores/userStore';
 import { useWalletStore } from '@/stores/walletStore';
 import { copyToClipboard, generateReferralLink } from '@/utils';
 import QRCode from 'react-qr-code';
+import { Referrals } from '@/types';
 
-export const ReferralStats: React.FC = () => {
-  const { userProfile, referrals } = useUserStore();
+ interface ReferralStatsProps {
+  referrals: Referrals;
+} 
+
+
+export const ReferralStats: React.FC<ReferralStatsProps> = ({ referrals }) => {
+  const { userProfile } = useUserStore();
   const { address } = useWalletStore();
 
   const referralLink = userProfile?.referralLink || (address ? generateReferralLink(address) : '');
