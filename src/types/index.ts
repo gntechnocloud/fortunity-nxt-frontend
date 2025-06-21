@@ -7,6 +7,7 @@ export interface User {
   referralLink: string;
   level: number;
   isActive: boolean;
+  totalInvestmentUsd: number; // <-- ✅ add this line
 }
 
 export interface Slot {

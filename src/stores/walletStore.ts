@@ -1,3 +1,4 @@
+// src/stores/walletStore.ts
 import { create } from 'zustand';
 import { ethers } from 'ethers';
 import {
@@ -7,6 +8,11 @@ import {
 import { storage, STORAGE_KEYS } from '@/utils';
 import { useUserStore } from './userStore';
 import type { WalletState } from '@/types';
+
+/* ------------------------------------------------------------------
+   MetaMask request lock to prevent race condition
+------------------------------------------------------------------- */
+let walletConnecting = false;
 
 declare global {
   interface Window {
@@ -35,6 +41,8 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
   error: null,
 
   connectWallet: async () => {
+    if (walletConnecting) return;
+    walletConnecting = true;
     set({ isLoading: true, error: null });
 
     try {
@@ -76,6 +84,8 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
         isLoading: false,
         isConnected: false,
       });
+    } finally {
+      walletConnecting = false;
     }
   },
 
@@ -120,7 +130,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     try {
       const { userProfile } = useUserStore.getState();
       const invested = userProfile?.totalInvestmentUsd ?? 0;
-      const mockBalance = (invested / 0.1).toFixed(2);
+      const mockBalance = (invested / 0.1).toFixed(2); // Simulated: 1 FNXT = $0.10
       set({ fnxtBalance: mockBalance });
     } catch (error) {
       console.error('Error loading FNXT balance:', error);
@@ -158,4 +168,5 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     set({ error: null });
   },
 }));
-// Automatically load balances on mount
+export default useWalletStore;
+

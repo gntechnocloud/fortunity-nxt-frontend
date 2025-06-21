@@ -1,76 +1,71 @@
-// src/pages/DashboardPage.tsx
 import React, { useEffect, useState } from "react";
 
-import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
-import { EarningsChart } from "@/components/dashboard/EarningsChart";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { ReferralStats } from "@/components/dashboard/ReferralStats";
-import { SlotGrid } from "@/components/dashboard/SlotGrid";
-import SlotsOverview from "@/components/dashboard/SlotsOverview";
-import { MatrixOverview } from "@/components/dashboard/MatrixOverview";
+import { DashboardOverview }   from "@/components/dashboard/DashboardOverview";
+import { EarningsChart }       from "@/components/dashboard/EarningsChart";
+import { RecentActivity }      from "@/components/dashboard/RecentActivity";
+import { ReferralStats }       from "@/components/dashboard/ReferralStats";
+import { SlotGrid }            from "@/components/dashboard/SlotGrid";
+import SlotsOverview           from "@/components/dashboard/SlotsOverview";
+import { MatrixOverview }      from "@/components/dashboard/MatrixOverview";
 
-import { useWalletStore } from "@/stores/walletStore";
-import { useUserStore } from "@/stores/userStore";
-import { fetchUsdPrices } from "@/utils/priceFeed";
+import { useWalletStore }      from "@/stores/walletStore";
+import { useUserStore }        from "@/stores/userStore";
+import { fetchUsdPrices }      from "@/utils/priceFeed";
 
-import type { Slot } from "@/types";
-
-
-
+import type { Slot }           from "@/types";
 
 const DashboardPage: React.FC = () => {
+  /* ───────────────────────────────── state ──────────────────────────────── */
   const [showBalances, setShowBalances] = useState(true);
-  const [usdPrices, setUsdPrices] = useState<Record<number, number>>({});
-  const { signer } = useWalletStore(); // ✅ get signer from wallet store
-  const { isLoading, purchaseSlot } = useUserStore(); // ✅ get functions
-  /* ------------------- Stores ------------------- */
-  const { isConnected, address, connectWallet } = useWalletStore();
+  const [usdPrices,     setUsdPrices]   = useState<Record<number, number>>({});
+
+  /* ────────────────────────────── wallet store ─────────────────────────── */
+  const { isConnected, address, connectWallet, signer } = useWalletStore();
+
+  /* ─────────────────────────────── user store ──────────────────────────── */
   const {
-    loadUserData,
-    loadEarnings,
-    loadReferrals,
+    /* loaders */
+    loadUser,
     loadMatrix,
-    loadTransactions,
     loadPoolIncome,
-    /* data */
+    buySlot,
+
+    /* reactive data */
     slots,
-    allSlots,        // <- ensure userStore exposes the 12‑slot master list
+    allSlots,
     userProfile,
     referrals,
-    matrixNodes,     // <- depth‑2 nodes
+    matrixNodes,
     transactions,
+    isLoading,
   } = useUserStore();
 
-  /* ---------- Fetch blockchain + price data ---------- */
+  /* ─────────────────────────── initial data pull ───────────────────────── */
   useEffect(() => {
-    const fetchAllData = async () => {
+    const fetchAll = async () => {
       if (!address) return;
-
       await Promise.all([
-        loadUserData(address),
-        loadEarnings(address),
-        loadReferrals(address),
-        loadMatrix(address),
-        loadTransactions(address),
-        loadPoolIncome(address),
+        loadUser(address),   // profile + earnings + slots
+        loadMatrix(address), // matrix nodes (level‑1/2)
+        loadPoolIncome(),    // pool stats – contract‑wide
       ]).catch(console.error);
     };
 
     if (isConnected && address) {
-      fetchAllData();
+      fetchAll();
     } else {
       connectWallet().catch(console.error);
     }
   }, [isConnected, address]);
 
-  // on mount ‑ grab USD prices for slots
+  /* ─────────────────────────── USD price helper ────────────────────────── */
   useEffect(() => {
     fetchUsdPrices()
       .then(setUsdPrices)
-      .catch((err) => console.error("Price feed error:", err));
+      .catch((err) => console.error("Price‑feed error:", err));
   }, []);
 
-  /* ------------------- Loading State ------------------ */
+  /* ───────────────────────────── loading guard ─────────────────────────── */
   if (!userProfile) {
     return (
       <div className="flex items-center justify-center h-96 text-gray-500">
@@ -79,10 +74,10 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  /* ------------------- Render ------------------- */
+  /* ─────────────────────────────── render UI ───────────────────────────── */
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
           Dashboard
@@ -96,21 +91,21 @@ const DashboardPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Overview Cards */}
+      {/* overview cards */}
       <DashboardOverview
         showBalances={showBalances}
         profile={userProfile}
-        slots={slots} /* active slot IDs */
+        slots={slots}
       />
 
-      {/* Slots Overview (all 12 slots with USD + CORE) */}
+      {/* all 12 slots + USD helper */}
       <SlotsOverview
-        allSlots={allSlots as Slot[]}      /* metadata for 1‑12 */
-        activeSlotIds={slots.map(s => s.id)} // ✅ FIXED: now an array of IDs     /* active slot IDs */
+        allSlots={allSlots as Slot[]}
+        activeSlotIds={slots.map((s) => s.id)}
         usdPrices={usdPrices}
       />
 
-      {/* Earnings vs Referrals */}
+      {/* earnings vs referrals */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <EarningsChart showBalances={showBalances} />
@@ -118,22 +113,27 @@ const DashboardPage: React.FC = () => {
         <ReferralStats referrals={referrals} />
       </div>
 
-      {/* Matrix overview (depth 2 only) */}
+      {/* matrix snapshot (depth‑2) */}
       <MatrixOverview matrixNodes={matrixNodes} />
 
-      {/* Slot cards & recent tx */}
+      {/* slot cards + recent tx */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <SlotGrid
-  slots={slots}
-  isLoading={isLoading}
-  onPurchase={async (slotId) => {
-    if (signer) await purchaseSlot(slotId, signer);
-  }}
-/>
-<RecentActivity transactions={transactions} />
+        <SlotGrid
+          slots={slots}
+          isLoading={isLoading}
+          onPurchase={async (slotId) => {
+            if (signer) await buySlot(slotId, signer);
+          }}
+        />
+        {/* remove RecentActivity if you have no tx backend yet */}
+        <RecentActivity transactions={transactions} />
       </div>
     </div>
   );
 };
 
 export default DashboardPage;
+// This file is part of the FNXT project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at    
+

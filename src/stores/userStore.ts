@@ -1,302 +1,242 @@
-//src/stores/userStore.ts
-import { create } from 'zustand';
-import { ethers } from 'ethers';
-import { API_CONFIG, CONTRACT_CONFIG, SLOT_CONFIG } from '@/constants';
-import { api, getErrorMessage } from '@/utils';
-/* ------------------------------------------------------------------
-   A. import ABI + provider (unchanged)
--------------------------------------------------------------------*/
+// src/stores/userStore.ts
+// -----------------------------------------------------------------------------
+// Production build – no backend; reads everything from FortuneNXTDiamond
+// -----------------------------------------------------------------------------
+import { create } from "zustand";
+import { ethers } from "ethers";
+import { CONTRACT_CONFIG, SLOT_CONFIG } from "@/constants";
 import diamondAbi from "@/abi/FortuneNXTDiamond.json";
 
+import type { UserState, Slot, MatrixNode } from "@/types";
 
-const provider = new ethers.BrowserProvider(window.ethereum);
+/* ---------- MetaMask provider (lazy) ---------- */
+const provider =
+  typeof window !== "undefined" && (window as any).ethereum
+    ? new ethers.BrowserProvider((window as any).ethereum)
+    : undefined;
 
-import type {
-  UserState,
-  ApiResponse,
-  Transaction,
-  Slot,
-  MatrixNode
-} from '@/types';
+/* ---------- blank helpers ---------- */
+const emptyEarnings = {
+  matrix: "0",
+  level: "0",
+  pool: "0",
+  total: "0",
+  withdrawn: "0",
+  available: "0",
+};
 
+/* ---------- Zustand store interface ---------- */
 interface UserStore extends UserState {
-  loadUserData: (address: string, token?: string) => Promise<void>;
-  purchaseSlot: (slotId: number, signer: ethers.Signer, token?: string) => Promise<void>;
-  loadTransactions: (address: string, token?: string) => Promise<void>;
-  loadEarnings: (address: string, token?: string) => Promise<void>;
-  loadReferrals: (address: string, token?: string) => Promise<void>;
-  loadMatrix: (address: string, token?: string) => Promise<void>;
-  loadPoolIncome: (address: string, token?: string) => Promise<void>;
-  refreshData: (address: string, token?: string) => Promise<void>;
+  loadUser: (address: string) => Promise<void>;
+  buySlot: (slot: number, signer: ethers.Signer) => Promise<void>;
+  loadMatrix: (address: string) => Promise<void>;
+  loadPoolIncome: () => Promise<void>;
   clearError: () => void;
-  clearUserData: () => void;
+
+  /* local caches */
   allSlots: Slot[];
   matrixNodes: MatrixNode[];
-  calculateFNXT: (investedUsd: number) => string;
+  calculateFNXT: (usd: number) => string;
 }
 
+/* ---------- Store implementation ---------- */
 export const useUserStore = create<UserStore>((set, get) => ({
+  /* -------- state -------- */
   userProfile: null,
   slots: [],
-  earnings: {
-    matrix: '0',
-    level: '0',
-    pool: '0',
-    total: '0',
-    withdrawn: '0',
-    available: '0',
-  },
+  earnings: emptyEarnings,
   referrals: {
     direct: 0,
     indirect: 0,
     total: 0,
     activeReferrals: 0,
   },
-  transactions: [],
-  matrix: [],
+  transactions: [],      // until backend arrives
+  matrixNodes: [],
+  matrix: [],            // <- ADD BACK so it satisfies the type
   poolIncome: [],
+
   isLoading: false,
   error: null,
-  matrixNodes: [],
-  allSlots: SLOT_CONFIG.prices.map((price, index) => ({
-    id: index + 1,
-    price: price.toString(),
-    priceCore: parseFloat(price),
+
+  /* -------- master slot template -------- */
+  allSlots: SLOT_CONFIG.prices.map((core, i) => ({
+    id: i + 1,
+    price: core.toString(),          // string CORE
+    priceCore: parseFloat(core),     // number CORE
     earnings: "0",
     purchased: false,
     isActive: false,
     rebirth: { count: 0 },
   })),
 
-  calculateFNXT: (usd: number) => {
-    const rate = 0.10;
-    return (usd / rate).toFixed(2);
-  },
-
-
+  /* -------- helpers -------- */
+  clearError: () => set({ error: null }),
+  calculateFNXT: (usd) => (usd / 0.1).toFixed(2), // 10 ¢ rule
 
   /* ------------------------------------------------------------------
-   B. loadUser()  – use getUserProfile & getAllSlotPricesInCore
--------------------------------------------------------------------*/
-loadUserData: async (addr: string) => {
-  if (!provider) return;
-  set({ isLoading: true, error: null });
-  try {
-    const c = new ethers.Contract(
-      CONTRACT_CONFIG.CONTRACT_ADDRESS,
-      diamondAbi,
-      provider
-    );
-
-    // 1️⃣ profile struct
-    const p = await c.getUserProfile(addr);
-    // 2️⃣ slot prices
-    const prices = await c.getAllSlotPricesInCore();
-
-    const activeIds: number[] = p.activeSlots.map((n: bigint) => Number(n));
-
-    // build slot list
-    const merged = get().allSlots.map((slot, idx) => ({
-      ...slot,
-      priceCore: Number(ethers.formatEther(prices[idx])),
-      purchased: activeIds.includes(slot.id),
-      isActive: activeIds.includes(slot.id),
-    }));
-
-    set({
-      userProfile: {
-        wallet: addr,
-        referrer: p.referrer,
-        joined: new Date(Number(p.joinedAt) * 1e3).toISOString(),
-        isActive: p.isActive,
-      } as any,
-      slots: merged.filter((s) => s.purchased),
-      earnings: {
-        matrix: ethers.formatEther(p.matrixEarnings),
-        level:  ethers.formatEther(p.levelEarnings),
-        pool:   ethers.formatEther(p.poolEarnings),
-        total:  ethers.formatEther(p.totalEarnings),
-      },
-      referrals: {
-        direct: Number(p.directReferrals),
-        indirect: 0,
-        total: Number(p.directReferrals),
-        activeReferrals: 0,
-      },
-      isLoading: false,
-    });
-  } catch (err: any) {
-    console.error(err);
-    set({ error: err.message, isLoading: false });
-  }
-},
-
-
-  purchaseSlot: async (slotId: number, signer: ethers.Signer, token?: string) => {
+     loadUser – pulls profile & slot prices in one go
+  ------------------------------------------------------------------ */
+  loadUser: async (addr) => {
+    if (!provider) return;
     set({ isLoading: true, error: null });
+
     try {
-      const contract = new ethers.Contract(
+      console.log("Calling getUserProfile with:", addr);
+      if (!ethers.isAddress(addr)) {
+        throw new Error("Invalid wallet address");
+      }
+      const c = new ethers.Contract(
         CONTRACT_CONFIG.CONTRACT_ADDRESS,
-        CONTRACT_CONFIG.CONTRACT_ABI,
+        diamondAbi,
+        provider
+      );
+
+      /* 1️⃣ profile struct */
+      const p = await c.getUserProfile(addr);
+
+      /* 2️⃣ core prices for all 12 slots */
+      const pricesCore: bigint[] = await c.getAllSlotPricesInCore();
+
+      /* 3️⃣ merge template ⇢ user slots */
+      const activeIds = p.activeSlots.map((n: bigint) => Number(n));
+      const merged = get().allSlots.map((s, idx) => ({
+        ...s,
+        priceCore: Number(ethers.formatEther(pricesCore[idx])),
+        purchased: activeIds.includes(s.id),
+        isActive: activeIds.includes(s.id),
+      }));
+
+      /* 4️⃣ earnings */
+      const matrixE = ethers.formatEther(p.matrixEarnings);
+      const levelE  = ethers.formatEther(p.levelEarnings);
+      const poolE   = ethers.formatEther(p.poolEarnings);
+      const totalE  = ethers.formatEther(p.totalEarnings);
+
+      // withdrawn tracking may not exist yet; guard
+      const withdrawnWei =
+        (p as any).withdrawnEarnings ?? 0n; // bigint or 0
+      const withdrawn = ethers.formatEther(withdrawnWei);
+      const availableWei =
+        BigInt(ethers.parseEther(totalE)) - BigInt(withdrawnWei);
+      const available = ethers.formatEther(availableWei);
+
+      set({
+        userProfile: {
+          wallet: addr,
+          referrer: p.referrer,
+          joined: new Date(Number(p.joinedAt) * 1000).toISOString(),
+          isActive: p.isActive,
+          totalInvestmentUsd: Number(totalE) * 10, // rough USD guess
+        } as any,
+        slots: merged.filter((s) => s.purchased),
+        earnings: {
+          matrix: matrixE,
+          level: levelE,
+          pool: poolE,
+          total: totalE,
+          withdrawn,
+          available,
+        },
+        referrals: {
+          direct: Number(p.directReferrals),
+          indirect: 0,
+          total: Number(p.directReferrals),
+          activeReferrals: 0,
+        },
+        isLoading: false,
+      });
+
+      /* preload pool info & matrix */
+      get().loadPoolIncome();
+      get().loadMatrix(addr);
+    } catch (err: any) {
+      console.error(err);
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  /* ------------------------------------------------------------------
+     buySlot – on‑chain only
+  ------------------------------------------------------------------ */
+  buySlot: async (slot, signer) => {
+    set({ isLoading: true });
+    try {
+      const c = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        diamondAbi,
         signer
       );
-      const tx = await contract.purchaseSlot(slotId);
+      const price = await c.getSlotPriceInCore(slot);
+      const tx = await c.purchaseSlot(slot, { value: price });
       await tx.wait();
 
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const response = await api.post<ApiResponse<any>>(
-        `${API_CONFIG.baseUrl}/user/${get().userProfile?.id}/purchase-slot`,
-        { slotId, transactionHash: tx.hash },
-        { headers }
-      );
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to update slot purchase in backend');
-      }
-
-      if (get().userProfile?.address) {
-        await get().loadUserData(get().userProfile!.address, token);
-      }
-
+      const addr = await signer.getAddress();
+      await get().loadUser(addr); // refresh UI
+    } catch (e: any) {
+      set({ error: e.message });
+    } finally {
       set({ isLoading: false });
-    } catch (error) {
-      set({
-        error: getErrorMessage(error),
-        isLoading: false
-      });
     }
   },
-
-  loadTransactions: async (address: string, token?: string) => {
-    try {
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const response = await api.get<ApiResponse<Transaction[]>>(
-        `${API_CONFIG.baseUrl}/user/${address}/transactions`,
-        { headers }
-      );
-      if (response.success) {
-        set({ transactions: response.data });
-      }
-    } catch (error) {
-      console.error('Failed to load transactions:', error);
-    }
-  },
-
-  loadEarnings: async (address: string, token?: string) => {
-    try {
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const response = await api.get<ApiResponse<any>>(
-        `${API_CONFIG.baseUrl}/user/${address}/earnings`,
-        { headers }
-      );
-      if (response.success) {
-        set({ earnings: response.data });
-      }
-    } catch (error) {
-      console.error('Failed to load earnings:', error);
-    }
-  },
-
-  loadReferrals: async (address: string, token?: string) => {
-    try {
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const response = await api.get<ApiResponse<any>>(
-        `${API_CONFIG.baseUrl}/user/${address}/referrals`,
-        { headers }
-      );
-      if (response.success) {
-        set({ referrals: response.data });
-      }
-    } catch (error) {
-      console.error('Failed to load referrals:', error);
-    }
-  },
-
 
   /* ------------------------------------------------------------------
-   C. loadMatrix()  – single slot example using getMatrixNode
--------------------------------------------------------------------*/
-loadMatrix: async (addr: string, slotId = 1) => {
-  if (!provider) return;
-  try {
-    const c = new ethers.Contract(
-      CONTRACT_CONFIG.CONTRACT_ADDRESS,
-      diamondAbi,
-      provider
-    );
-    const node = await c.getMatrixNode(addr, slotId);
-
-    set({
-      matrixNodes: [
-        {
-          wallet: addr,
-          slotId,
-          level1: node.level1,
-          level2: node.level2,
-          earnings: ethers.formatEther(node.earnings),
-          isComplete: node.completed,
-        } as unknown as MatrixNode,
-      ],
-    });
-  } catch (e) {
-    console.error(e);
-  }
-},
-  loadPoolIncome: async (address: string, token?: string) => {
+     loadMatrix – gathers nodes for every active slot
+  ------------------------------------------------------------------ */
+  loadMatrix: async (addr) => {
+    if (!provider) return;
     try {
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const response = await api.get<ApiResponse<any>>(
-        `${API_CONFIG.baseUrl}/user/${address}/pool-income`,
-        { headers }
+      const c = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        diamondAbi,
+        provider
       );
-      if (response.success) {
-        set({ poolIncome: response.data });
+
+      const active = get().slots.map((s) => s.id);
+      const nodes: MatrixNode[] = [];
+
+      for (const sId of active) {
+        const n = await c.getMatrixNode(addr, sId);
+        nodes.push({
+          wallet: addr,
+          slotId: sId,
+          level1: n.level1,
+          level2: n.level2,
+          earnings: ethers.formatEther(n.earnings),
+          isComplete: n.completed,
+        } as unknown as MatrixNode);
       }
-    } catch (error) {
-      console.error('Failed to load pool income:', error);
+      set({ matrixNodes: nodes });
+    } catch (e) {
+      console.error(e);
     }
   },
 
-  refreshData: async (address: string, token?: string) => {
-    await Promise.all([
-      get().loadUserData(address, token),
-      get().loadTransactions(address, token),
-      get().loadEarnings(address, token),
-      get().loadReferrals(address, token),
-      get().loadMatrix(address, token),
-      get().loadPoolIncome(address, token)
-    ]);
+  /* ------------------------------------------------------------------
+     loadPoolIncome – getPoolInfo for all 12 slots
+  ------------------------------------------------------------------ */
+  loadPoolIncome: async () => {
+    if (!provider) return;
+    try {
+      const c = new ethers.Contract(
+        CONTRACT_CONFIG.CONTRACT_ADDRESS,
+        diamondAbi,
+        provider
+      );
+
+      const infos = await Promise.all(
+        Array.from({ length: 12 }, (_, i) => c.getPoolInfo(i + 1))
+      );
+
+      set({ poolIncome: infos.map(pi => ({
+        slotId: 0,           // filler until backend
+        poolId: 0,
+        amount: ethers.formatEther(pi.balance),
+        distributionDate: Number(pi.lastDistributed) * 1000,
+        userShare: "0",
+      })) as any });         // <- cast to silence TS
+    } catch (e) {
+      console.error(e);
+    }
   },
-
-  clearError: () => set({ error: null }),
-
-  clearUserData: () => set({
-    userProfile: null,
-    slots: [],
-    earnings: {
-      matrix: '0',
-      level: '0',
-      pool: '0',
-      total: '0',
-      withdrawn: '0',
-      available: '0'
-    },
-    referrals: {
-      direct: 0,
-      indirect: 0,
-      total: 0,
-      activeReferrals: 0
-    },
-    transactions: [],
-    matrix: [],
-    matrixNodes: [],
-    poolIncome: [],
-    error: null
-  })
 }));
