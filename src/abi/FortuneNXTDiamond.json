@@ -98,6 +98,25 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "address",
+        "name": "oldWallet",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newWallet",
+        "type": "address"
+      }
+    ],
+    "name": "AdminWalletUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "uint256",
         "name": "level",
@@ -124,12 +143,51 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "newPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "ManualCorePriceUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8[3]",
+        "name": "newDays",
+        "type": "uint8[3]"
+      }
+    ],
+    "name": "PoolDaysUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "uint8[3]",
         "name": "distributionDays",
         "type": "uint8[3]"
       }
     ],
     "name": "PoolDistributionDaysUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8[]",
+        "name": "weights",
+        "type": "uint8[]"
+      }
+    ],
+    "name": "PoolSlotWeightsUpdated",
     "type": "event"
   },
   {
@@ -310,19 +368,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "emergencyWithdraw",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "getAdminWallet",
     "outputs": [
@@ -361,12 +406,12 @@
   },
   {
     "inputs": [],
-    "name": "getOwner",
+    "name": "getManualCorePrice",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "uint256",
         "name": "",
-        "type": "address"
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -374,25 +419,12 @@
   },
   {
     "inputs": [],
-    "name": "getPoolDistributionDays",
+    "name": "getPoolDays",
     "outputs": [
       {
         "internalType": "uint8[3]",
         "name": "",
         "type": "uint8[3]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getPriceFeed",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -482,42 +514,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_slotId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getSlot",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "priceUSD",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "poolPercent",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "active",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct AppStorageLib.Slot",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "_newAdmin",
         "type": "address"
@@ -587,7 +583,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_account",
+        "name": "account",
         "type": "address"
       }
     ],
@@ -654,12 +650,51 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "newWallet",
+        "type": "address"
+      }
+    ],
+    "name": "setAdminWallet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "setManualCorePrice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint8[3]",
-        "name": "_days",
+        "name": "newDays",
         "type": "uint8[3]"
       }
     ],
     "name": "setPoolDistributionDays",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8[]",
+        "name": "weights",
+        "type": "uint8[]"
+      }
+    ],
+    "name": "setPoolSlotWeights",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -730,22 +765,22 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_level",
-        "type": "uint256"
+        "internalType": "uint256[]",
+        "name": "levels",
+        "type": "uint256[]"
       },
       {
-        "internalType": "uint256",
-        "name": "_directRequired",
-        "type": "uint256"
+        "internalType": "uint256[]",
+        "name": "directRequired",
+        "type": "uint256[]"
       },
       {
-        "internalType": "uint256",
-        "name": "_percent",
-        "type": "uint256"
+        "internalType": "uint256[]",
+        "name": "percBp",
+        "type": "uint256[]"
       }
     ],
-    "name": "updateLevelRequirement",
+    "name": "updateLevelIncome",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -994,19 +1029,19 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "uint256",
-        "name": "slot",
+        "name": "totalDistributed",
         "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "feeAmount",
+        "name": "timestamp",
         "type": "uint256"
       }
     ],
-    "name": "PoolAdminFeeTaken",
+    "name": "MagicPoolDistributed",
     "type": "event"
   },
   {
@@ -1014,24 +1049,18 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "slot",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "amountPerUser",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "totalUsers",
+        "name": "amount",
         "type": "uint256"
       }
     ],
-    "name": "PoolDistributed",
+    "name": "MagicPoolFunded",
     "type": "event"
   },
   {
@@ -1039,6 +1068,12 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "slot",
         "type": "uint256"
@@ -1048,20 +1083,52 @@
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
-      },
+      }
+    ],
+    "name": "MagicPoolPaid",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
       {
         "indexed": true,
         "internalType": "address",
-        "name": "from",
+        "name": "user",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "slot",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
       }
     ],
-    "name": "PoolFunded",
+    "name": "MissedMagicPoolPayout",
     "type": "event"
   },
   {
     "inputs": [],
-    "name": "ADMIN_FEE_PERCENT",
+    "name": "MAX_DAYS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_EARNING_MULTIPLIER",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1086,14 +1153,8 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "slot",
-        "type": "uint256"
-      }
-    ],
-    "name": "distributePool",
+    "inputs": [],
+    "name": "distributeMagicPool",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1102,11 +1163,11 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "slot",
+        "name": "usdAmount",
         "type": "uint256"
       }
     ],
-    "name": "fundPool",
+    "name": "fundMagicPool",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1115,30 +1176,39 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "slot",
+        "name": "",
         "type": "uint256"
       }
     ],
-    "name": "getPoolInfo",
+    "name": "slotSharePercents",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "balance",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "participantCount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "lastDistributed",
-        "type": "uint256"
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "slot",
+        "type": "uint256"
+      }
+    ],
+    "name": "SlotFrozen",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -1163,6 +1233,31 @@
       }
     ],
     "name": "SlotPurchased",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "slot",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "count",
+        "type": "uint256"
+      }
+    ],
+    "name": "SlotRebirthed",
     "type": "event"
   },
   {
@@ -1230,24 +1325,6 @@
       }
     ],
     "name": "buySlot",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "referrer",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slot",
-        "type": "uint256"
-      }
-    ],
-    "name": "register",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
